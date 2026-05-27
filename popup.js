@@ -2,7 +2,7 @@
  * @file popup.js
  * @description Controls UI logic, data aggregation and view toggling in the Extension's popup dialog.
  * Fully compliant with Mozilla Security Standards (No innerHTML, pure DOM manipulation).
- * @version 1.4.0
+ * @version 1.0.1
  */
 
 document.addEventListener("DOMContentLoaded", () => {

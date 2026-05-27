@@ -3,7 +3,7 @@
  * @description Injected content script designed to intercept and record flashcard reviews within SiYuan Notes.
  * It uses the event capturing phase to bypass internal event propagation restrictions and handles
  * both precision pointer events and native application keyboard shortcuts.
- * @version 1.3.0
+ * @version 1.0.0
  */
 
 (() => {
