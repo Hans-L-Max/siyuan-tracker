@@ -59,7 +59,7 @@
 
     .navigation-tabs {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 16px;
     }
 
@@ -68,10 +68,10 @@
       background: var(--surface);
       border: 1px solid rgba(108, 112, 134, 0.3);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 8px 4px;
       border-radius: var(--border-radius);
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 500;
       transition: all 0.2s ease-in-out;
     }
@@ -152,9 +152,11 @@
     <button id="clearData" class="clear-btn" aria-label="Daten zurücksetzen">Reset</button>
   </header>
 
+  <!-- Navigation nun mit 3 Tabs -->
   <nav class="navigation-tabs" role="tablist">
-    <button id="tabDate" class="tab active" role="tab" aria-selected="true">Nach Datum</button>
-    <button id="tabRating" class="tab" role="tab" aria-selected="false">Nach Bewertung</button>
+    <button id="tabDate" class="tab active" role="tab" aria-selected="true">Datum</button>
+    <button id="tabRating" class="tab" role="tab" aria-selected="false">Antwort</button>
+    <button id="tabHistory" class="tab" role="tab" aria-selected="false">Verlauf</button>
   </nav>
 
   <main id="output" class="view-container"></main>

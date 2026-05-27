@@ -2,7 +2,7 @@
  * @file popup.js
  * @description Controls UI logic, data aggregation and view toggling in the Extension's popup dialog.
  * Fully compliant with Mozilla Security Standards (No innerHTML, pure DOM manipulation).
- * @version 1.3.1
+ * @version 1.4.0
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -11,9 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const outputContainer = document.getElementById("output");
   const tabDateBtn = document.getElementById("tabDate");
   const tabRatingBtn = document.getElementById("tabRating");
+  const tabHistoryBtn = document.getElementById("tabHistory");
   const clearDataBtn = document.getElementById("clearData");
 
-  /** @type {'date' | 'rating'} */
+  /** @type {'date' | 'rating' | 'history'} */
   let activeViewMode = "date";
 
   /**
@@ -39,7 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((data) => {
         const { reviews } = data;
         
-        // Sicherer Reset des Containers ohne innerHTML zu nutzen
         outputContainer.textContent = "";
 
         if (reviews.length === 0) {
@@ -49,8 +49,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (activeViewMode === "date") {
           renderChronologicalMetrics(reviews);
-        } else {
+        } else if (activeViewMode === "rating") {
           renderQualitativeMetrics(reviews);
+        } else if (activeViewMode === "history") {
+          renderHistoryMetrics(reviews);
         }
       })
       .catch((error) => {
@@ -60,9 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Aggregates and renders analytics grouped chronologically by calendar date.
-   * Utilizing modern Object.groupBy pattern architectures.
-   * @param {Array<{date: string, timestamp: number, rating: string}>} reviews - Raw storage arrays.
-   * @returns {void}
+   * @param {Array<{date: string, timestamp: number, rating: string}>} reviews
    */
   const renderChronologicalMetrics = (reviews) => {
     const historicalGroupings = Object.groupBy(reviews, (item) => item.date);
@@ -76,7 +76,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return accumulator;
       }, {});
 
-      // Sicheres Erstellen des Zeilen-Containers
       const dashboardRowElement = document.createElement("div");
       dashboardRowElement.className = "data-row";
 
@@ -112,8 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Aggregates and renders analytics categorized purely by answer quality ratings.
-   * @param {Array<{date: string, timestamp: number, rating: string}>} reviews - Raw storage arrays.
-   * @returns {void}
+   * @param {Array<{date: string, timestamp: number, rating: string}>} reviews
    */
   const renderQualitativeMetrics = (reviews) => {
     const metricsGroupedByRating = Object.groupBy(reviews, (item) => item.rating);
@@ -148,24 +146,96 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // Event Orchestration Bindings
-  tabDateBtn.addEventListener("click", () => {
-    activeViewMode = "date";
-    tabDateBtn.classList.add("active");
-    tabDateBtn.setAttribute("aria-selected", "true");
-    tabRatingBtn.classList.remove("active");
-    tabRatingBtn.setAttribute("aria-selected", "false");
-    updateAnalyticsDashboard();
-  });
+  /**
+   * Renders the raw chronological history of all reviews, allowing individual deletion.
+   * @param {Array<{date: string, timestamp: number, rating: string}>} reviews
+   */
+  const renderHistoryMetrics = (reviews) => {
+    // Neueste Einträge ganz oben (absteigend sortieren)
+    const sortedReviews = [...reviews].sort((a, b) => b.timestamp - a.timestamp);
 
-  tabRatingBtn.addEventListener("click", () => {
-    activeViewMode = "rating";
-    tabRatingBtn.classList.add("active");
-    tabRatingBtn.setAttribute("aria-selected", "true");
-    tabDateBtn.classList.remove("active");
-    tabDateBtn.setAttribute("aria-selected", "false");
+    sortedReviews.forEach((item) => {
+      const dashboardRowElement = document.createElement("div");
+      dashboardRowElement.className = "data-row";
+      dashboardRowElement.style.padding = "8px 12px"; // Etwas kompakter für Listen
+
+      // Linke Seite: Datum und formatierte Uhrzeit
+      const metaContainer = document.createElement("div");
+      
+      const titleEl = document.createElement("div");
+      titleEl.className = "meta-title";
+      titleEl.textContent = item.date;
+
+      const subtitleEl = document.createElement("div");
+      subtitleEl.className = "meta-subtitle";
+      const timeString = new Date(item.timestamp).toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      subtitleEl.textContent = `${timeString} Uhr`;
+
+      metaContainer.appendChild(titleEl);
+      metaContainer.appendChild(subtitleEl);
+
+      // Rechte Seite: Badge + Lösch-Button
+      const rightContainer = document.createElement("div");
+      rightContainer.style.display = "flex";
+      rightContainer.style.alignItems = "center";
+      rightContainer.style.gap = "10px";
+
+      const badge = document.createElement("span");
+      badge.className = `badge ${item.rating}`;
+      badge.textContent = item.rating;
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "✕";
+      deleteBtn.className = "clear-btn";
+      deleteBtn.style.padding = "2px 6px";
+      deleteBtn.title = "Diesen Eintrag löschen";
+
+      // Lösch-Logik für genau diesen Eintrag anhand des einmaligen Timestamps
+      deleteBtn.addEventListener("click", () => {
+        browser.storage.local.get({ reviews: [] }).then(data => {
+          const filteredReviews = data.reviews.filter(r => r.timestamp !== item.timestamp);
+          return browser.storage.local.set({ reviews: filteredReviews });
+        }).then(() => {
+          updateAnalyticsDashboard(); // Lade die Liste sofort flüssig neu
+        });
+      });
+
+      rightContainer.appendChild(badge);
+      rightContainer.appendChild(deleteBtn);
+
+      dashboardRowElement.appendChild(metaContainer);
+      dashboardRowElement.appendChild(rightContainer);
+      outputContainer.appendChild(dashboardRowElement);
+    });
+  };
+
+  /**
+   * Helper function to manage tab state classes
+   * @param {HTMLElement} activeBtn 
+   * @param {string} mode 
+   */
+  const switchTab = (activeBtn, mode) => {
+    activeViewMode = mode;
+    
+    [tabDateBtn, tabRatingBtn, tabHistoryBtn].forEach(btn => {
+      btn.classList.remove("active");
+      btn.setAttribute("aria-selected", "false");
+    });
+
+    activeBtn.classList.add("active");
+    activeBtn.setAttribute("aria-selected", "true");
+    
     updateAnalyticsDashboard();
-  });
+  };
+
+  // Event Orchestration Bindings
+  tabDateBtn.addEventListener("click", () => switchTab(tabDateBtn, "date"));
+  tabRatingBtn.addEventListener("click", () => switchTab(tabRatingBtn, "rating"));
+  tabHistoryBtn.addEventListener("click", () => switchTab(tabHistoryBtn, "history"));
 
   clearDataBtn.addEventListener("click", () => {
     if (confirm("Möchtest du alle aufgezeichneten Lernstatistiken unwiderruflich löschen?")) {
