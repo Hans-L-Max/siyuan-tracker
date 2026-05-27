@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "SiYuan Flashcard Tracker",
+  "version": "1.2.0",
+  "description": "Zählt gelernte Karteikarten in SiYuan Notes (Unterstützt alle URLs & Web-Infrastrukturen).",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
