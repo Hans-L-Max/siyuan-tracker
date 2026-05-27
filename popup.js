@@ -1,8 +1,8 @@
 /**
  * @file popup.js
  * @description Controls UI logic, data aggregation and view toggling in the Extension's popup dialog.
- * Leverages ES2026 data grouping standard pipelines for clean, responsive visualization updates.
- * @version 1.3.0
+ * Fully compliant with Mozilla Security Standards (No innerHTML, pure DOM manipulation).
+ * @version 1.3.1
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -17,14 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeViewMode = "date";
 
   /**
-   * Generates a structural localized fallback element if no review entries exist.
-   * @returns {string} Fully formed HTML element string.
+   * Renders a secure fallback element if no review entries exist.
+   * @returns {void}
    */
-  const getEmptyStateMarkup = () => `
-    <div class="data-row" style="justify-content: center; color: var(--muted); font-size: 0.85rem;">
-      Keine Daten erfasst. Lern fleißig!
-    </div>
-  `;
+  const renderEmptyState = () => {
+    const row = document.createElement("div");
+    row.className = "data-row";
+    row.style.justifyContent = "center";
+    row.style.color = "var(--muted)";
+    row.style.fontSize = "0.85rem";
+    row.textContent = "Keine Daten erfasst. Lern fleißig!";
+    outputContainer.appendChild(row);
+  };
 
   /**
    * Main rendering processor calculating flashcard metrics.
@@ -34,10 +38,12 @@ document.addEventListener("DOMContentLoaded", () => {
     browser.storage.local.get({ reviews: [] })
       .then((data) => {
         const { reviews } = data;
-        outputContainer.innerHTML = "";
+        
+        // Sicherer Reset des Containers ohne innerHTML zu nutzen
+        outputContainer.textContent = "";
 
         if (reviews.length === 0) {
-          outputContainer.innerHTML = getEmptyStateMarkup();
+          renderEmptyState();
           return;
         }
 
@@ -70,19 +76,36 @@ document.addEventListener("DOMContentLoaded", () => {
         return accumulator;
       }, {});
 
+      // Sicheres Erstellen des Zeilen-Containers
       const dashboardRowElement = document.createElement("div");
       dashboardRowElement.className = "data-row";
-      dashboardRowElement.innerHTML = `
-        <div>
-          <div class="meta-title">${calendarDate}</div>
-          <div class="meta-subtitle">Gesamt gelernt: ${activeSessionReviews.length}</div>
-        </div>
-        <div class="badge-container">
-          ${Object.entries(distributionCounts).map(([ratingLabel, frequencyCount]) => `
-            <span class="badge ${ratingLabel}" title="${ratingLabel}">${frequencyCount}</span>
-          `).join("")}
-        </div>
-      `;
+
+      const metaContainer = document.createElement("div");
+      
+      const titleEl = document.createElement("div");
+      titleEl.className = "meta-title";
+      titleEl.textContent = calendarDate;
+
+      const subtitleEl = document.createElement("div");
+      subtitleEl.className = "meta-subtitle";
+      subtitleEl.textContent = `Gesamt gelernt: ${activeSessionReviews.length}`;
+
+      metaContainer.appendChild(titleEl);
+      metaContainer.appendChild(subtitleEl);
+
+      const badgeContainer = document.createElement("div");
+      badgeContainer.className = "badge-container";
+
+      Object.entries(distributionCounts).forEach(([ratingLabel, frequencyCount]) => {
+        const badge = document.createElement("span");
+        badge.className = `badge ${ratingLabel}`;
+        badge.title = ratingLabel;
+        badge.textContent = String(frequencyCount);
+        badgeContainer.appendChild(badge);
+      });
+
+      dashboardRowElement.appendChild(metaContainer);
+      dashboardRowElement.appendChild(badgeContainer);
       outputContainer.appendChild(dashboardRowElement);
     });
   };
@@ -101,14 +124,26 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const dashboardRowElement = document.createElement("div");
       dashboardRowElement.className = "data-row";
-      dashboardRowElement.innerHTML = `
-        <div>
-          <span class="badge ${ratingKey}" style="font-size: 0.8rem; padding: 4px 8px;">${ratingKey}</span>
-        </div>
-        <div class="meta-title">
-          <strong>${isolatedReviewsCollection.length}</strong> Mal gewählt
-        </div>
-      `;
+
+      const badgeWrap = document.createElement("div");
+      const badge = document.createElement("span");
+      badge.className = `badge ${ratingKey}`;
+      badge.style.fontSize = "0.8rem";
+      badge.style.padding = "4px 8px";
+      badge.textContent = ratingKey;
+      badgeWrap.appendChild(badge);
+
+      const statsWrap = document.createElement("div");
+      statsWrap.className = "meta-title";
+      
+      const counterStrong = document.createElement("strong");
+      counterStrong.textContent = String(isolatedReviewsCollection.length);
+      
+      statsWrap.appendChild(counterStrong);
+      statsWrap.append(" Mal gewählt");
+
+      dashboardRowElement.appendChild(badgeWrap);
+      dashboardRowElement.appendChild(statsWrap);
       outputContainer.appendChild(dashboardRowElement);
     });
   };
