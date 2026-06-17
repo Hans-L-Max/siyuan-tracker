@@ -95,12 +95,17 @@
       return;
     }
 
-    // Double check that flashcard interactive buttons are active and visible
     const functionalControls = document.querySelector(".card__action:not(.fn__none)");
     if (!functionalControls) {
       return;
     }
 
+    // Double check that flashcard interactive buttons are active and visible
+    const isShowAnswerScreen = functionalControls.querySelector('button[data-type="-1"]');
+    if (isShowAnswerScreen) {
+      return; 
+    }
+  
     const standardInputKey = event.key.toLowerCase();
 
     if (["1", "j", "a"].includes(standardInputKey)) {
